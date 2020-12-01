@@ -59,13 +59,6 @@ module Solver0 : Solver = struct
     |> string_of_int
 end
 
-let rec sum_of_two_in_list_is_n n = function
-  | x :: xs -> 
-    let list = List.map (fun y -> x + y) xs in
-    if List.mem n list then (x, 2020 - x)
-    else sum_of_two_in_list_is_n n xs
-  | [] -> (-1, -1)
-
 (* Tukaj re-definirajte funkcijo naloga1 in naloga2 *)
 module Solver1 : Solver = struct
 
