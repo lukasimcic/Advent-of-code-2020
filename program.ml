@@ -81,9 +81,7 @@ module Solver1 : Solver = struct
       | x :: xs -> 
         match sum_of_two_in_list_is_n (2020 - x) xs with
           | (-1, -1) -> aux xs
-          | (y, z) -> 
-            print_string ((string_of_int x) ^ ("\n") ^ (string_of_int y) ^ ("\n") ^ (string_of_int z) ^ ("\n")); 
-            x * y * z
+          | (y, z) -> x * y * z
     in
     string_of_int (aux lines)
 
