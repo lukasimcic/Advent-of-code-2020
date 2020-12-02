@@ -85,12 +85,69 @@ module Solver1 : Solver = struct
     in
     string_of_int (aux lines)
 
+end  
+
+module Solver2 : Solver = struct
+
+  let line_to_tuple line = (* where line is like "3-17 s: ssjsssdssvwsssssss" *)
+    match String.split_on_char ' ' line with
+      | [n; char; password] -> (n, String.get char 0, password)
+      | _ -> failwith "nemogoč primer"
+
+  let limits n =  (* where n is like "3-17" *)
+    let list n =  String.split_on_char '-' n in
+    let lower_limit = List.hd (list n) in
+    let upper_limit = List.hd (List.tl (list n)) in
+    int_of_string lower_limit, int_of_string upper_limit
+
+  let string_to_list_of_char str =
+    List.init (String.length str) (fun i -> String.get str i)
+
+  let password_is_valid line =
+    let (n, char, password) = line_to_tuple line in
+    let lower_limit, upper_limit = limits n in
+    let rec count_el_in_list (el : char) acc = function
+      | x :: xs -> 
+        if x = el then count_el_in_list el (acc + 1) xs
+        else count_el_in_list el acc xs
+      | [] -> acc
+    in
+    let m = count_el_in_list char 0 (string_to_list_of_char password) in
+    (lower_limit <= m) && (m <= upper_limit)
+  
+  let number_of_valid_passwords is_valid list =
+    let rec aux acc = function
+      | x :: xs -> 
+        if is_valid x then aux (acc + 1) xs
+        else aux acc xs
+      | [] -> acc
+    in
+    aux 0 list
+
+  let naloga1 data =
+    let lines = List.lines data in
+    let n = number_of_valid_passwords password_is_valid lines in
+    string_of_int n
+
+  let password_is_valid' line = 
+    let (n, char, password) = line_to_tuple line in
+    let lower_limit, upper_limit = limits n in
+    let on_bottom_index = String.get password (lower_limit - 1) = char in
+    let on_upper_index = String.get password (upper_limit - 1) = char in
+    on_bottom_index != on_upper_index
+
+  let naloga2 data _part1 =
+    let lines = List.lines data in
+    let n = number_of_valid_passwords password_is_valid' lines in
+    string_of_int n
+
 end
 
 (* Poženemo zadevo *)
 let choose_solver : string -> (module Solver) = function
   | "0" -> (module Solver0)
   | "1" -> (module Solver1)
+  | "2" -> (module Solver2)
   | _ -> failwith "Ni še rešeno"
 
 let main () =
