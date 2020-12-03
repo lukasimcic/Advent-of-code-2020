@@ -1,5 +1,5 @@
 (* ker mi je že priložena funckija preberi_datoteko zmeraj sprožila napako End_of_file, sem spisal novo.
-Pomožno funckijo read_lines sem dobil iz https://stackoverflow.com/questions/5774934/how-do-i-read-in-lines-from-a-text-file-in-ocaml*)
+Pomožno funckijo read_lines sem dobil iz https://stackoverflow.com/questions/5774934/how-do-i-read-in-lines-from-a-text-file-in-ocaml *)
 let preberi_datoteko name = 
   let read_lines name : string list =
     let ic = open_in name in
@@ -143,11 +143,39 @@ module Solver2 : Solver = struct
 
 end
 
+module Solver3 : Solver = struct
+
+  let is_tree i line = String.get line i = '#'
+
+  let rec counter acc len move_right move_down count_right count_down = function
+    | [] -> acc
+    | x :: xs ->
+      match count_down mod move_down = 0, is_tree (count_right mod len) x with
+        | false, _ -> counter acc len move_right move_down count_right (count_down + 1) xs
+        | _, true -> counter (acc + 1) len move_right move_down (count_right + move_right) (count_down + 1) xs
+        | _, false -> counter acc len move_right move_down (count_right + move_right) (count_down + 1) xs
+
+  let naloga1 data =
+    let lines = List.lines data in
+    let length = String.length (List.hd lines) in
+    let n = counter 0 length 3 1 0 0 lines in
+    string_of_int n
+
+  let naloga2 data _part1 =
+    let lines = List.lines data in
+    let length = String.length (List.hd lines) in
+    let count right down = counter 0 length right down 0 0 lines in
+    let n = (count 1 1) * (count 3 1) * (count 5 1) * (count 7 1) * (count 1 2) in
+    string_of_int n
+
+end
+
 (* Poženemo zadevo *)
 let choose_solver : string -> (module Solver) = function
   | "0" -> (module Solver0)
   | "1" -> (module Solver1)
   | "2" -> (module Solver2)
+  | "3" -> (module Solver3)
   | _ -> failwith "Ni še rešeno"
 
 let main () =
