@@ -33,6 +33,34 @@ module List = struct
     sum' 0 l
 
   let lines = String.split_on_char '\n'
+
+  let lines_blanks str =
+    let lines = String.split_on_char '\n' str in
+    let rec aux acc acc' = function
+      | [] -> acc' :: acc
+      | x :: xs -> 
+        if x = "" then aux (acc' :: acc) "" xs
+        else aux acc (acc' ^ " " ^ x) xs
+    in
+    aux [] "" lines
+
+end
+
+(* pomožne funkcije *)
+module Aux = struct
+
+  let rec counter acc condition = function
+    | x :: xs ->
+      if condition x then counter (acc + 1) condition xs
+      else counter acc condition xs
+    | [] -> acc
+
+  (* dobil iz https://reasonml.chat/t/iterate-over-a-string-pattern-match-on-a-string/1317 *)
+  let list_of_char string = string |> String.to_seq |> List.of_seq
+
+  (* dobil iz https://rosettacode.org/wiki/Determine_if_a_string_is_numeric#OCaml *)
+  let is_int s = try ignore (int_of_string s); true with _ -> false
+
 end
 
 module type Solver = sig
@@ -170,13 +198,119 @@ module Solver3 : Solver = struct
 
 end
 
+module Solver4 : Solver = struct
+  
+  let list_of_lists line = 
+    let list = List.tl (String.split_on_char ' ' line) in
+    let rec aux acc = function
+      | x :: xs -> aux ((String.split_on_char ':' x) :: acc) xs
+      | [] -> acc
+    in
+    aux [] list
+  
+  module Passport = Map.Make(String);;
+
+  let passport_of_line line =
+    let list = list_of_lists line in
+    let dict = Passport.empty in
+    let rec fill_dict dict = function
+      | x :: xs ->
+        let dict' = Passport.add (List.hd x) (List.hd (List.tl x)) dict in
+        fill_dict dict' xs
+      | [] -> dict
+    in
+    fill_dict dict (list)
+
+  let valid_passport dict =
+    match Passport.cardinal dict with
+      | 8 -> true
+      | 7 -> if not (Passport.mem "cid" dict) then true else false
+      | _ -> false
+    
+  let naloga1 data =
+    let lines = data |> List.lines_blanks |> List.map passport_of_line in
+    string_of_int (Aux.counter 0 valid_passport lines)
+
+  let valid_byr byr =
+    1920 <= int_of_string byr && int_of_string byr <= 2002
+
+  let valid_iyr iyr =
+    2010 <= int_of_string iyr && int_of_string iyr <= 2020
+
+  let valid_eyr eyr =
+    2020 <= int_of_string eyr && int_of_string eyr <= 2030
+
+  let rec valid_hcl hcl =
+    let characters = Aux.list_of_char hcl in
+    if List.hd characters != '#' || List.length characters != 7  then false else
+    let rec aux = function
+      | [] -> true
+      | x :: xs -> 
+        match List.mem x ['0'; '1'; '2'; '3'; '4'; '5'; '6'; '7'; '8'; '9'; 'a'; 'b'; 'c'; 'd'; 'e'; 'f'] with
+          | false -> false
+          | true -> aux xs 
+    in
+    aux (List.tl characters)
+
+  let valid_hgt hgt =
+    let inches = String.split_on_char 'i' hgt in
+    let cm = String.split_on_char 'c' hgt in
+    match List.length inches, List.length cm with
+      | 2, 1 -> if 59 <= int_of_string (List.hd inches) && int_of_string (List.hd inches) <= 76 then true else false
+      | 1, 2 -> if 150 <= int_of_string (List.hd cm) && int_of_string (List.hd cm) <= 193 then true else false
+      | _ -> false
+
+  let valid_ecl ecl =
+    List.mem ecl ["amb"; "blu"; "brn"; "gry"; "grn"; "hzl"; "oth"]
+
+  let valid_pid pid =
+    String.length pid = 9 && Aux.is_int pid
+
+  let valid_passport' dict =
+    let byr = Passport.find_opt "byr" dict in
+      if Option.is_none byr then false else
+      let byr = Option.get byr in
+    let iyr = Passport.find_opt "iyr" dict in
+      if Option.is_none iyr then false else
+      let iyr = Option.get iyr in 
+    let eyr = Passport.find_opt "eyr" dict in
+      if Option.is_none eyr then false else
+      let eyr = Option.get eyr in 
+    let hgt = Passport.find_opt "hgt" dict in
+      if Option.is_none hgt then false else
+      let hgt = Option.get hgt in 
+    let hcl = Passport.find_opt "hcl" dict in
+      if Option.is_none hcl then false else
+      let hcl = Option.get hcl in 
+    let ecl = Passport.find_opt "ecl" dict in
+      if Option.is_none ecl then false else
+      let ecl = Option.get ecl in 
+    let pid = Passport.find_opt "pid" dict in
+      if Option.is_none pid then false else
+      let pid = Option.get pid in 
+    
+    if not (valid_byr byr) then false else
+    if not (valid_iyr iyr) then false else
+    if not (valid_eyr eyr) then false else
+    if not (valid_hgt hgt) then false else
+    if not (valid_hcl hcl) then false else
+    if not (valid_ecl ecl) then false else
+    if not (valid_pid pid) then false else true
+ 
+  let naloga2 data _part1 =
+    let lines = data |> List.lines_blanks |> List.map passport_of_line in
+    string_of_int (Aux.counter 0 valid_passport' lines)
+
+end
+
 (* Poženemo zadevo *)
 let choose_solver : string -> (module Solver) = function
   | "0" -> (module Solver0)
   | "1" -> (module Solver1)
   | "2" -> (module Solver2)
   | "3" -> (module Solver3)
-  | _ -> failwith "Ni še rešeno"
+  | "4" -> (module Solver4)
+  | _ -> failwith "Not solved yet"
 
 let main () =
   (* Ker mi popravljen task s številom dneva ni delal, sem kodo popravil, tako da se dan vpiše ročno: *)
