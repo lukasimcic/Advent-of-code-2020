@@ -61,6 +61,20 @@ module Aux = struct
   (* dobil iz https://rosettacode.org/wiki/Determine_if_a_string_is_numeric#OCaml *)
   let is_int s = try ignore (int_of_string s); true with _ -> false
 
+  let reverse list =
+    let rec reverse_aux acc list =
+      match list with
+        | [] -> acc
+        | head :: tails -> reverse_aux (head :: acc) tails
+    in
+    reverse_aux [] list
+
+  let rec max f acc = function
+    | x :: xs -> 
+      if f x > snd acc then max f (x, f x) xs
+      else max f acc xs
+    | [] -> acc
+
 end
 
 module type Solver = sig
@@ -303,6 +317,43 @@ module Solver4 : Solver = struct
 
 end
 
+module Solver5 : Solver = struct
+
+  let from_binary string = 
+    let characters = Aux.list_of_char string in
+    let rec aux acc i = function
+      | [] -> acc
+      | x :: xs -> 
+        match x with
+          | ('F' | 'L') -> aux acc (2 * i) xs
+          | ('B' | 'R')  -> aux (acc + i) (2 * i) xs
+          | _ -> failwith "impossible"
+    in
+    aux 0 1 (Aux.reverse characters)
+  
+  let id string =
+    let row = String.sub string 0 7 in
+    let column = String.sub string 7 3 in
+    from_binary row * 8 + from_binary column
+
+  let naloga1 data =
+    let lines = List.lines data in
+    let n = snd (Aux.max id ("", 0) lines) in
+    string_of_int n
+
+  let naloga2 data _part1 =
+    let lines = data |> List.lines |> List.map id in
+    let rec find = function
+      | [] -> failwith "impossible"
+      | x :: xs ->
+        match List.mem (x - 1) xs, List.mem (x - 2) xs with
+          | false, true -> (x - 1)
+          | _ -> find (xs @ [x])
+    in
+    string_of_int (find lines)
+
+end
+
 (* Poženemo zadevo *)
 let choose_solver : string -> (module Solver) = function
   | "0" -> (module Solver0)
@@ -310,6 +361,7 @@ let choose_solver : string -> (module Solver) = function
   | "2" -> (module Solver2)
   | "3" -> (module Solver3)
   | "4" -> (module Solver4)
+  | "5" -> (module Solver5)
   | _ -> failwith "Not solved yet"
 
 let main () =
