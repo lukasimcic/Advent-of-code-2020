@@ -37,12 +37,16 @@ module List = struct
   let lines_blanks str =
     let lines = String.split_on_char '\n' str in
     let rec aux acc acc' = function
-      | [] -> acc' :: acc
+      | [] -> List.rev ((String.sub acc' 1 (String.length acc' - 1)) :: acc)
       | x :: xs -> 
-        if x = "" then aux (acc' :: acc) "" xs
-        else aux acc (acc' ^ " " ^ x) xs
+        if x = "" then aux ((String.sub acc' 1 (String.length acc' - 1)):: acc) "" xs
+        else aux acc (acc' ^ "\n" ^ x) xs
     in
     aux [] "" lines
+  
+  (* pobrano iz https://stackoverflow.com/questions/2378947/how-do-i-intersect-two-lists-in-ocaml*)
+  let intersect l1 l2 =
+    List.fold_left (fun acc x -> if (List.exists (fun y -> y = x) l1) then x::acc else acc) [] l2;;
 
 end
 
@@ -354,6 +358,47 @@ module Solver5 : Solver = struct
 
 end
 
+module Solver6 : Solver = struct
+
+  let count_in_group group =
+    let characters = Aux.list_of_char group in
+    let rec make_list acc = function
+      | x :: xs -> 
+        if List.mem x acc || x = '\n' || x = ' ' then make_list acc xs
+        else make_list (x :: acc) xs
+      | [] -> acc
+    in
+    List.length (make_list [] characters)
+
+  let naloga1 data =
+    let groups = List.lines_blanks data in
+    let rec count acc = function
+    | x :: xs -> count (acc + count_in_group x) xs
+    | [] -> acc 
+    in
+    string_of_int (count 0 groups)
+
+  let count_in_group' group =
+    let lines = group |> List.lines |> List.map Aux.list_of_char in
+    let filter_fun = fun y -> match y with | '\n' -> false | ' ' -> false | _ -> true in
+    let rec aux acc = function
+      | x :: xs -> 
+        let x = List.filter filter_fun x in
+        aux (List.intersect acc x) xs
+      | [] -> List.length acc
+    in
+    aux (List.hd lines) lines
+
+  let naloga2 data _part1=
+    let groups = List.lines_blanks data in
+    let rec count acc = function
+    | x :: xs -> count (acc + count_in_group' x) xs
+    | [] -> acc 
+    in
+    string_of_int (count 0 groups)
+
+end
+
 (* Poženemo zadevo *)
 let choose_solver : string -> (module Solver) = function
   | "0" -> (module Solver0)
@@ -362,6 +407,7 @@ let choose_solver : string -> (module Solver) = function
   | "3" -> (module Solver3)
   | "4" -> (module Solver4)
   | "5" -> (module Solver5)
+  | "6" -> (module Solver6)
   | _ -> failwith "Not solved yet"
 
 let main () =
