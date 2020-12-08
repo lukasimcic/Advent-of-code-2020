@@ -34,6 +34,14 @@ module List = struct
 
   let lines = String.split_on_char '\n'
 
+  let reverse list =
+    let rec reverse_aux acc list =
+      match list with
+        | [] -> acc
+        | head :: tails -> reverse_aux (head :: acc) tails
+    in
+    reverse_aux [] list
+
   let lines_blanks str =
     let lines = String.split_on_char '\n' str in
     let rec aux acc acc' = function
@@ -47,6 +55,38 @@ module List = struct
   (* pobrano iz https://stackoverflow.com/questions/2378947/how-do-i-intersect-two-lists-in-ocaml*)
   let intersect l1 l2 =
     List.fold_left (fun acc x -> if (List.exists (fun y -> y = x) l1) then x::acc else acc) [] l2;;
+  
+  (* pobrano iz https://stackoverflow.com/questions/2710233/how-to-get-a-sub-list-from-a-list-in-ocaml *)
+  let rec slice b e l = 
+  match l with
+    [] -> failwith "wrong boundaries"
+  | h :: t -> 
+     let tail = if e=0 then [] else slice (b-1) (e-1) t in
+     if b>0 then tail else h :: tail
+
+  (* pobrano iz https://stackoverflow.com/questions/37091784/ocaml-function-replace-a-element-in-a-list *)
+  let replace l pos a  = List.mapi (fun i x -> if i = pos then a else x) l;;
+
+end
+
+module String = struct
+  include String
+
+  (* dobil iz https://reasonml.chat/t/iterate-over-a-string-pattern-match-on-a-string/1317 *)
+  let list_of_char string = string |> String.to_seq |> List.of_seq
+  
+  let string_of_list list =
+    let rec aux acc = function
+      | [] -> acc
+      | x :: xs -> aux (acc ^ Char.escaped x) xs
+    in
+    aux "" list
+  
+  let remove n str =
+    let list = list_of_char str in
+    let filter_fun = fun i _ -> i != n in
+    let list = List.filteri filter_fun list in
+    string_of_list list
 
 end
 
@@ -59,25 +99,18 @@ module Aux = struct
       else counter acc condition xs
     | [] -> acc
 
-  (* dobil iz https://reasonml.chat/t/iterate-over-a-string-pattern-match-on-a-string/1317 *)
-  let list_of_char string = string |> String.to_seq |> List.of_seq
-
   (* dobil iz https://rosettacode.org/wiki/Determine_if_a_string_is_numeric#OCaml *)
   let is_int s = try ignore (int_of_string s); true with _ -> false
-
-  let reverse list =
-    let rec reverse_aux acc list =
-      match list with
-        | [] -> acc
-        | head :: tails -> reverse_aux (head :: acc) tails
-    in
-    reverse_aux [] list
 
   let rec max f acc = function
     | x :: xs -> 
       if f x > snd acc then max f (x, f x) xs
       else max f acc xs
     | [] -> acc
+
+  let rec range lower upper =
+    if lower = upper then [] else
+    lower :: (range (lower + 1) upper)
 
 end
 
@@ -259,7 +292,7 @@ module Solver4 : Solver = struct
     2020 <= int_of_string eyr && int_of_string eyr <= 2030
 
   let rec valid_hcl hcl =
-    let characters = Aux.list_of_char hcl in
+    let characters = String.list_of_char hcl in
     if List.hd characters != '#' || List.length characters != 7  then false else
     let rec aux = function
       | [] -> true
@@ -324,7 +357,7 @@ end
 module Solver5 : Solver = struct
 
   let from_binary string = 
-    let characters = Aux.list_of_char string in
+    let characters = String.list_of_char string in
     let rec aux acc i = function
       | [] -> acc
       | x :: xs -> 
@@ -333,7 +366,7 @@ module Solver5 : Solver = struct
           | ('B' | 'R')  -> aux (acc + i) (2 * i) xs
           | _ -> failwith "impossible"
     in
-    aux 0 1 (Aux.reverse characters)
+    aux 0 1 (List.reverse characters)
   
   let id string =
     let row = String.sub string 0 7 in
@@ -361,7 +394,7 @@ end
 module Solver6 : Solver = struct
 
   let count_in_group group =
-    let characters = Aux.list_of_char group in
+    let characters = String.list_of_char group in
     let rec make_list acc = function
       | x :: xs -> 
         if List.mem x acc || x = '\n' || x = ' ' then make_list acc xs
@@ -379,7 +412,7 @@ module Solver6 : Solver = struct
     string_of_int (count 0 groups)
 
   let count_in_group' group =
-    let lines = group |> List.lines |> List.map Aux.list_of_char in
+    let lines = group |> List.lines |> List.map String.list_of_char in
     let filter_fun = fun y -> match y with | '\n' -> false | ' ' -> false | _ -> true in
     let rec aux acc = function
       | x :: xs -> 
@@ -399,6 +432,62 @@ module Solver6 : Solver = struct
 
 end
 
+module Solver8 : Solver = struct
+
+  let line_to_tuple line =
+    let list = String.split_on_char ' ' line in
+    let fst = List.hd list in
+    let snd = int_of_string (List.hd (List.tl list)) in
+    (fst, snd)
+
+  let enumerate lines =
+    let list = List.lines lines in
+    let rec aux acc i = function
+      | x :: xs -> 
+        let x = line_to_tuple x in
+        let enum = (i, x) in
+        aux (enum :: acc) (i + 1) xs
+      | [] -> List.reverse acc
+    in
+    aux [] 0 list
+  
+  let rec move n acc acc' list = 
+    let (i, tuple) = List.nth list n in
+    if List.mem i acc' then (acc, true) else
+    if List.length list <= n + 1 then (acc, false) else
+    match tuple with
+      | ("nop", _) -> move (n + 1) acc (n :: acc') list
+      | ("acc", j) -> move (n + 1) (acc + j) (n :: acc') list
+      | ("jmp", j) -> move (n + j) acc (n :: acc') list
+      | _ -> failwith "impossible"
+
+  let naloga1 data =
+    let lines = data |> enumerate in
+    let sol = move 0 0 [] lines in
+    string_of_int (fst sol)
+
+  let change_tuple tuple =
+    let (n, (x, i)) = tuple in
+    match x with
+      | "nop" -> (n, ("jmp", i))
+      | "jmp" -> (n, ("nop", i))
+      | "acc" -> tuple
+      | _ -> failwith "ˇimpossible"
+    
+  let naloga2 data _part1 =
+    let lines = data |> enumerate in
+    let rec aux lines i =
+      let x = List.nth lines i in
+      let x' = change_tuple x in
+      let lines' = List.replace lines i x' in
+      let acc, bool = move 0 0 [] lines' in
+      if bool then aux lines (i + 1)
+      else acc
+    in
+    string_of_int (aux lines 0)
+
+end 
+
 (* Poženemo zadevo *)
 let choose_solver : string -> (module Solver) = function
   | "0" -> (module Solver0)
@@ -408,6 +497,7 @@ let choose_solver : string -> (module Solver) = function
   | "4" -> (module Solver4)
   | "5" -> (module Solver5)
   | "6" -> (module Solver6)
+  | "8" -> (module Solver8)
   | _ -> failwith "Not solved yet"
 
 let main () =
