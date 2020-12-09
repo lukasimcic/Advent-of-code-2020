@@ -75,18 +75,27 @@ module String = struct
   (* dobil iz https://reasonml.chat/t/iterate-over-a-string-pattern-match-on-a-string/1317 *)
   let list_of_char string = string |> String.to_seq |> List.of_seq
   
-  let string_of_list list =
+  let string_of_char_list list =
     let rec aux acc = function
       | [] -> acc
       | x :: xs -> aux (acc ^ Char.escaped x) xs
     in
     aux "" list
   
+  let string_of_string_list list =
+    let rec aux acc = function
+      | [] -> acc
+      | x :: xs -> 
+        if acc = "" then aux x xs
+        else aux (acc ^ " " ^ x) xs
+    in
+    aux "" list
+
   let remove n str =
     let list = list_of_char str in
     let filter_fun = fun i _ -> i != n in
     let list = List.filteri filter_fun list in
-    string_of_list list
+    string_of_char_list list
 
 end
 
@@ -111,6 +120,73 @@ module Aux = struct
   let rec range lower upper =
     if lower = upper then [] else
     lower :: (range (lower + 1) upper)
+
+  (* dobil iz https://stackoverflow.com/questions/25980927/how-to-write-a-function-to-find-max-number-in-a-list-of-type-number-in-ocaml *)
+  let max_in_list l = 
+  match l with
+  [] -> failwith "None"
+  |h::t ->  let rec helper (seen,rest) =
+              match rest with 
+              [] -> seen
+              |h'::t' -> let seen' = if h' > seen then h' else seen in 
+                         let rest' = t'
+              in helper (seen',rest')
+            in helper (h,t)
+
+  let min_in_list l = 
+  match l with
+  [] -> failwith "None"
+  |h::t ->  let rec helper (seen,rest) =
+              match rest with 
+              [] -> seen
+              |h'::t' -> let seen' = if h' < seen then h' else seen in 
+                         let rest' = t'
+              in helper (seen',rest')
+            in helper (h,t)
+
+end
+
+module Print = struct
+
+  let char_list list =
+    print_string "[";
+    let rec aux list =
+    match list with
+      | e :: [] -> print_char (e); print_string "]"
+      | e::l -> print_char (e); print_string ";"; print_string " "; aux l
+      | [] -> print_string "[]"
+    in
+    aux list
+  
+  let string_list list =
+    print_string "[";
+    let rec aux list =
+    match list with
+      | e :: [] -> print_string (e); print_string "]"
+      | e::l -> print_string (e); print_string ";"; print_string " "; aux l
+      | [] -> print_string "[]"
+    in
+    aux list
+
+  let int_list list =
+    print_string "[";
+    let rec aux list =
+    match list with
+      | e :: [] -> print_int (e); print_string "]"
+      | e::l -> print_int (e); print_string ";"; print_string " "; aux l
+      | [] -> print_string "[]"
+    in
+    aux list
+
+  let print_list_list list =
+    print_string "[";
+    let rec aux list =
+    match list with
+      | e :: [] -> string_list (e); print_string "]"
+      | e::l -> string_list (e); print_string ";"; print_string " "; aux l
+      | [] -> print_string "[]"
+    in
+    aux list;
 
 end
 
@@ -432,6 +508,83 @@ module Solver6 : Solver = struct
 
 end
 
+(* unfinished
+module Solver7 : Solver = struct
+
+  let tuple_of_bag string =
+    let words = String.split_on_char ' ' string in 
+    let words = (match List.hd words with 
+      | "" -> List.slice 1 (List.length words - 2) words
+      | "no" -> ["0"]
+      | _ -> List.slice 0 (List.length words - 2) words) in
+    let int = int_of_string (List.hd words) in
+    let bag' = String.string_of_string_list (List.tl words) in
+    (int, bag')
+
+  let split line =
+    let words = String.split_on_char ' ' line in
+    let bag_list = List.slice 0 1 words in
+    let bags_list = List.slice 4 (List.length words - 1) words in
+    let bag = String.string_of_string_list bag_list in
+    let bags = String.string_of_string_list bags_list in
+    let bags_list = String.split_on_char ',' bags in
+    (bag, List.map tuple_of_bag bags_list)
+  
+  let contains_bags bag = function
+    | (y, list) -> List.map snd list
+
+  let rec contains_bag bag tuple =
+    (*| (y, list) -> 
+      match list with
+        | x :: xs -> if snd x = bag then true else contains_bag bag (y, xs)
+        | [] -> false*)
+    List.mem bag (contains_bags bag tuple)
+
+  let rec bags_that_direct_contain bag acc = function
+    | x :: xs -> 
+      if contains_bag bag x then bags_that_contain bag ((fst x) :: acc) xs
+      else bags_that_contain bag acc xs
+    | [] -> acc
+
+  let rec bags_that_contain bag lines =
+    let direct = bags_that_direct_contain bag 0 lines in
+    let rec stevec acc spomin = function
+      | [] -> acc
+      | b::bs ->
+      if List.exists (fun x -> x = b) spomin then stevec acc spomin bs
+      else stevec (acc+1) (b::spomin) (bs @ (vsebujejo b bags))
+    in
+
+  let naloga1 data =
+    let lines = data |> List.lines |> List.map split in
+    
+    let rec list acc = function
+      | x :: xs -> 
+        if contains_bag "shiny gold" x then list ((fst x) :: acc) xs
+        else list acc xs
+      | [] -> acc
+    in
+    let list = "shiny gold" :: (list [] lines) in
+    Print.string_list list;
+    
+    let rec aux acc = function
+      | [] -> acc
+      | x :: xs ->
+        match x with
+          (bag, l) ->
+          let l = List.map snd l in
+          if List.length (List.intersect l list) = 0 then aux acc xs
+          else aux (acc + 1) xs
+    in
+    string_of_int (aux 0 lines)
+
+
+  let naloga2 data _part1 =
+    let lines = data |> List.lines in
+    ""
+
+end *)
+
 module Solver8 : Solver = struct
 
   let line_to_tuple line =
@@ -488,6 +641,54 @@ module Solver8 : Solver = struct
 
 end 
 
+module Solver9 : Solver = struct
+  
+  let is_valid n list =
+    let rec aux n i = function
+      | [] -> false
+      | x :: xs -> 
+        match i, List.mem (n - x) xs with
+          | 0, _ -> false
+          | _, true -> true
+          | _, _ -> aux n (i - 1) (xs @ [x])
+    in
+    aux n (List.length list) list
+
+  let naloga1 data =
+    let lines = data |> List.lines |> List.int_list in
+    let len = 25 in
+    let start_list = List.slice 0 (len - 1) lines in
+    let start_tail = List.slice len ((List.length lines) - 1) lines in
+    let rec aux list tail =
+      let len = List.length list in
+      match tail with
+        | x :: xs -> 
+          if not (is_valid x list) then x else
+          let list' = (List.slice 1 (len - 1) list) @ [x] in
+          aux list' xs 
+        | [] -> failwith "impossible"
+    in
+    string_of_int (aux start_list start_tail)
+
+  let naloga2 data _part1 =
+    let lines = data |> List.lines |> List.int_list in
+    let n = int_of_string (naloga1 data) in
+    let rec aux n list lines =
+      match lines with
+        | [] -> failwith "impossible"
+        | x :: xs -> 
+          match List.sum (x :: list) with
+            | i when i > n -> aux n [] ((List.tl (List.reverse list)) @ lines)
+            | i when i = n -> (x :: list)
+            | _ -> aux n (x :: list) (List.tl lines)
+    in
+    let list = aux n [] lines in
+    let min = Aux.min_in_list list in
+    let max = Aux.max_in_list list in
+    string_of_int (min + max)
+    
+end
+
 (* Poženemo zadevo *)
 let choose_solver : string -> (module Solver) = function
   | "0" -> (module Solver0)
@@ -498,6 +699,7 @@ let choose_solver : string -> (module Solver) = function
   | "5" -> (module Solver5)
   | "6" -> (module Solver6)
   | "8" -> (module Solver8)
+  | "9" -> (module Solver9)
   | _ -> failwith "Not solved yet"
 
 let main () =
