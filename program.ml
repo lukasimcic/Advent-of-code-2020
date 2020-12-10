@@ -689,6 +689,33 @@ module Solver9 : Solver = struct
     
 end
 
+module Solver10 : Solver = struct
+
+  let tuple_1_2_3 lines =
+    let lines = lines |> List.sort Stdlib.compare |> List.reverse in
+    let rec aux acc1 acc2 acc3 = function
+      | [] -> (acc1, acc2, acc2)
+      | x :: [] -> if x = 1 then (acc1 + 1, acc2, acc3) else (acc1, acc2, acc2)
+      | x1 :: x2 :: xs -> 
+        match x1 - x2 with
+          | 1 -> aux (1 + acc1) acc2 acc3 (x2 :: xs)
+          | 2 -> aux acc1 (1 + acc2) acc3 (x2 :: xs)
+          | 3 -> aux acc1 acc2 (1 + acc3) (x2 :: xs)
+          | _ -> failwith "impossible"   
+    in
+    aux 0 0 0 lines
+
+  let naloga1 data =
+    let lines = data |> List.lines |> List.int_list in
+    let n1, n2, n3 = tuple_1_2_3 lines in
+    print_int n1; print_string " "; print_int n3;
+    string_of_int ((n3 + 1) * n1)
+
+  let naloga2 data _part1 =
+    ""
+
+end  
+
 (* Poženemo zadevo *)
 let choose_solver : string -> (module Solver) = function
   | "0" -> (module Solver0)
@@ -700,6 +727,7 @@ let choose_solver : string -> (module Solver) = function
   | "6" -> (module Solver6)
   | "8" -> (module Solver8)
   | "9" -> (module Solver9)
+  | "10" -> (module Solver10)
   | _ -> failwith "Not solved yet"
 
 let main () =
