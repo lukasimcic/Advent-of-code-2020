@@ -67,6 +67,10 @@ module List = struct
   (* pobrano iz https://stackoverflow.com/questions/37091784/ocaml-function-replace-a-element-in-a-list *)
   let replace l pos a  = List.mapi (fun i x -> if i = pos then a else x) l;;
 
+  let get n list =
+    let one_element_list = slice n n list in
+    List.hd one_element_list
+
 end
 
 module String = struct
@@ -716,6 +720,87 @@ module Solver10 : Solver = struct
 
 end  
 
+module Solver11 : Solver = struct
+
+  let becomes_occupied m n list =
+    if List.get n (List.get m list) != 'L' then false else
+    let len = List.length list in
+    let len' = List.length (List.hd list) in
+    let test = ref true in
+    for i = m - 1 to m + 1 do
+      if i >= 0 && i < len then
+      for j = n - 1 to n + 1 do
+        if j >= 0 && j < len' then
+        let ij = List.get j (List.get i list) in
+        if ij = '#' then test := false;
+        ()
+      done;
+    done;
+    !test
+
+  let becomes_empty m n list =
+    if List.get n (List.get m list) != '#' then false else
+    let len = List.length list in
+    let len' = List.length (List.hd list) in
+    let test = ref (-1) in
+    for i = m - 1 to m + 1 do
+      if i >= 0 && i < len then
+      for j = n - 1 to n + 1 do
+        if j >= 0 && j < len' then
+        let ij = List.get j (List.get i list) in
+        if ij = '#' then test := !test + 1;
+        ()
+      done;
+    done;
+    if !test > 3 then true else false
+
+  let new_layout lines =
+    let new_lines = ref lines in
+    let row_len = List.length (List.hd lines) in
+    for m = 0 to (List.length lines) - 1 do
+      for n = 0 to row_len - 1 do
+        let mn = List.get n (List.get m lines) in
+        let new_char = 
+          match becomes_occupied m n lines, becomes_empty m n lines with
+            | true, false -> '#'
+            | false, true -> 'L'
+            | false, false -> mn
+            | _, _ -> failwith "impossible"
+        in
+        let new_row = List.replace (List.get m !new_lines) n new_char in
+        new_lines := List.replace !new_lines m new_row;
+      ()
+      done;
+    done;
+    !new_lines
+
+  let how_many_num list = 
+    let rec aux acc = function
+      | x :: xs -> if x = '#' then aux (acc + 1) xs else aux acc xs
+      | [] -> acc
+    in
+    let rec aux' acc = function
+      | x :: xs -> aux' (acc + (aux 0 x)) xs
+      | [] -> acc
+    in
+    aux' 0 list
+
+  let naloga1 data =
+    let lines = data |> List.lines |> List.map String.list_of_char in
+    let rec aux lines =
+      let lines' = lines in
+      let lines = new_layout lines in
+      if lines = lines' then lines
+      else aux lines
+    in
+    string_of_int (how_many_num (aux lines))
+
+  let naloga2 data _part1 =
+    let lines = List.lines data in
+    ""
+
+end
+
 (* Poženemo zadevo *)
 let choose_solver : string -> (module Solver) = function
   | "0" -> (module Solver0)
@@ -728,6 +813,7 @@ let choose_solver : string -> (module Solver) = function
   | "8" -> (module Solver8)
   | "9" -> (module Solver9)
   | "10" -> (module Solver10)
+  | "11" -> (module Solver11)
   | _ -> failwith "Not solved yet"
 
 let main () =
