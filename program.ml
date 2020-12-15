@@ -796,8 +796,37 @@ module Solver11 : Solver = struct
     string_of_int (how_many_num (aux lines))
 
   let naloga2 data _part1 =
-    let lines = List.lines data in
     ""
+
+end
+
+module Solver15 : Solver = struct
+
+  let next list =
+    let x = List.hd list in
+    let rec count x acc list =
+      match list with
+        | y :: ys ->
+          if x = y then acc else
+          count x (acc + 1) ys
+        | [] -> 0
+    in
+    count x 1 (List.tl list)
+  
+  let nth n list = 
+    let rec aux acc list =
+      if acc = n then List.hd list else
+      let new_list = (next list) :: list in
+      aux (acc + 1) new_list
+    in
+    aux (List.length list) list
+  
+  let naloga1 data =
+    let lines = data |> String.split_on_char ',' |> List.map int_of_string  |> List.reverse in
+    string_of_int (nth 2020 lines)
+
+  let naloga2 data _part1 =
+  ""
 
 end
 
@@ -814,6 +843,7 @@ let choose_solver : string -> (module Solver) = function
   | "9" -> (module Solver9)
   | "10" -> (module Solver10)
   | "11" -> (module Solver11)
+  | "15" -> (module Solver15)
   | _ -> failwith "Not solved yet"
 
 let main () =
