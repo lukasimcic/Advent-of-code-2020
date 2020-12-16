@@ -830,6 +830,49 @@ module Solver15 : Solver = struct
 
 end
 
+module Solver16 : Solver = struct
+
+  let range string =   (*e.g. [1; 2; 3] from "1-3" *)
+    let list = String.split_on_char '-' string in
+    let m = int_of_string (List.hd list) in
+    let n = int_of_string (List.hd (List.tl list)) in
+    Aux.range m (n + 1)
+  
+  let range_from_line line =
+    let list = String.split_on_char ' ' line in
+    let list = List.reverse list in
+    let range1 = range (List.get 0 list) in
+    let range2 = range (List.get 2 list) in
+    range2 @ range1
+  
+  let range_from_rules rules =
+    let lines = List.lines rules in
+    let rec aux acc = function
+      | x :: xs -> aux (acc @ range_from_line x) xs
+      | [] -> acc
+    in
+    aux [] lines
+  
+  let naloga1 data =
+    let groups = List.lines_blanks data in
+    let rules = List.get 0 groups in 
+    let range = range_from_rules rules in
+    let tickets = groups |> List.get 2 |> List.lines |> List.tl 
+                  |> List.map (String.split_on_char ',') |> List.concat  
+                  |> List.map int_of_string in
+    let rec aux acc = function
+      | x :: xs -> 
+        if List.mem x range then aux acc xs
+        else aux (acc + x) xs
+      | [] -> acc
+    in
+    string_of_int (aux 0 tickets)
+  
+  let naloga2 data _part1 =
+    ""
+
+end
+
 (* Poženemo zadevo *)
 let choose_solver : string -> (module Solver) = function
   | "0" -> (module Solver0)
@@ -844,6 +887,7 @@ let choose_solver : string -> (module Solver) = function
   | "10" -> (module Solver10)
   | "11" -> (module Solver11)
   | "15" -> (module Solver15)
+  | "16" -> (module Solver16)
   | _ -> failwith "Not solved yet"
 
 let main () =
